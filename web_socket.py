@@ -93,7 +93,6 @@ class WebsocketClient:
 
     async def process_message(self, c, timeout=5):
         """Does not fry everything if processing fails"""
-        print(c.message)
         try:
             await asyncio.wait_for(self._process_message(c), timeout=timeout)
         except asyncio.TimeoutError:
