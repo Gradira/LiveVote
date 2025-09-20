@@ -93,16 +93,18 @@ class WebsocketClient:
 
     async def process_message(self, c, timeout=5):
         """Does not fry everything if processing fails"""
+        print(c.message)
         try:
             await asyncio.wait_for(self._process_message(c), timeout=timeout)
         except asyncio.TimeoutError:
             print(f"ERROR: Processing message '{c.message}' by {c.author.name} timed out after {timeout} seconds.")
+            return
+        print(f'Successfully evaluated {c.message} by {c.author.name}')
 
     async def chat_watcher(self, video_id):
         chat = pytchat.create(video_id=video_id)
         while chat.is_alive():
             for c in chat.get().sync_items():
-                print(c.message)
                 asyncio.create_task(self.process_message(c, timeout=5))
             await asyncio.sleep(0.3)
 
