@@ -22,10 +22,13 @@ class Game:
         db.connect(reuse_if_open=True)
 
         # Setup environment
-        if not Country.table_exists():
-            preset_countries()
+        print('Preseting countries...')
+        preset_countries()
+        print('Recalculating caches...')
         recalc_cache()  # refreshing caches...
+        print('Creating tables...')
         db.create_tables([Setting, CountryCache, Event, User, Country, Vote], safe=True)
+        print('Setup done!')
 
         return self
 
