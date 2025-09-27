@@ -13,7 +13,9 @@ db = MySQLDatabase(
     user=db_config['DB_USER'],
     password=db_config['DB_PASSWD'],
     host=db_config['DB_HOST'],
-    port=int(db_config['DB_PORT'])
+    port=int(db_config['DB_PORT']),
+    charset='utf8mb4',
+    use_unicode=True
 )
 
 def to_dict(model: Model | dict | list | tuple) -> dict:
@@ -41,6 +43,7 @@ def to_dict(model: Model | dict | list | tuple) -> dict:
 class BaseModel(Model):
     class Meta:
         database = db
+        table_settings = ['DEFAULT CHARSET=utf8mb4', 'COLLATE=utf8mb4_unicode_ci']
 
     def __iter__(self):
         for key, value in to_dict(self).items():

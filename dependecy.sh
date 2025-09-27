@@ -1,1 +1,5 @@
-sudo apt-get install wmaker openbox obconf
+echo "Installing dependencies..."
+sudo apt-get install wmaker \
+                     openbox \
+                     obconf \
+                     xdotool

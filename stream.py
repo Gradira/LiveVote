@@ -16,12 +16,12 @@ from selenium.webdriver.remote.webdriver import WebDriver
 
 def run(driver: WebDriver):
     driver.get("http://0.0.0.0:8080/")
-    sleep(3)
+    sleep(5)
+    driver.fullscreen_window()  # pixel-perfect 1920x1080
+    # going fullscreen, -5,-5 for correcting weird window offsets
     driver.save_screenshot('a.png')
-    html = driver.find_element(By.TAG_NAME, "html")
-    print("Page loaded in Selenium-controlled browser on virtual display :99")
     # Keep browser open so FFmpeg can capture the screen
-    time.sleep(600)  # seconds; adjust as needed
+    time.sleep(600000000)  # seconds; adjust as needed
 
 def run_selenium_on_xvfb():
     os.environ['DISPLAY'] = ':99'
@@ -32,9 +32,8 @@ def run_selenium_on_xvfb():
     options.add_argument("--height=1080")
 
     driver = webdriver.Firefox(service=Service("geckodriver"), options=options)
+    driver.minimize_window()
     try:
-        driver.set_window_position(-5, -5, windowHandle ='current')  # correcting weird window offsets
-        driver.fullscreen_window()  # pixel-perfect 1920x1080
         run(driver)
     except Exception:
         print(traceback.format_exc())

@@ -12,14 +12,6 @@ from models import User, Vote, Country
 from playhouse.shortcuts import model_to_dict
 
 
-"""def download_user_image(user_id: str, image_url: str):
-    image_dir = Path('/LiveVoteWeb', 'cached_media', 'user_images')
-    image_dir.mkdir(exist_ok=True)
-    image_path = Path(image_dir, f'{user_id}.jpg')
-    content = requests.get(image_url).content
-    image_path.write_bytes(content)"""
-
-
 class WebsocketClient:
     def __init__(self, game: Game):
         self.game = game
@@ -27,7 +19,7 @@ class WebsocketClient:
 
     async def notify_clients(self, report: dict) -> None:
         if self.clients:
-            msg = json.dumps(report)
+            msg = json.dumps(report, ensure_ascii=False)  # Important for emojis!
             disconnected = set()
             for client in self.clients:
                 try:
@@ -40,7 +32,7 @@ class WebsocketClient:
         self.clients.add(websocket)
         try:
             report = gen_status_report()
-            await websocket.send(json.dumps(report))
+            await websocket.send(json.dumps(report, ensure_ascii=False))
             await websocket.wait_closed()
         finally:
             self.clients.remove(websocket)
@@ -57,10 +49,14 @@ class WebsocketClient:
             print(f'{alpha2} is not a valid country code.')
             return
 
+        # Force username to Python str and log for debugging
+        username = str(c.author.name)
+        print(f"Received username: {repr(username)}")
+
         user, created = User.get_or_create(
             user_id=c.author.channelId,
             defaults={
-                "username": c.author.name,
+                "username": username,
                 "channel_url": c.author.channelUrl,
                 "image_url": c.author.imageUrl,
                 "is_mod": c.author.isChatModerator,
@@ -68,17 +64,15 @@ class WebsocketClient:
         )
 
         if not created:
-            if user.image_url != c.author.imageUrl:
-                pass
-                # download_user_image(c.author.channelId, c.author.imageUrl)
-            user.username = c.author.name
-            user.channel_url = c.author.channelUrl
-            user.image_url = c.author.imageUrl
+            # Update values, force str, and log
+            user.username = str(c.author.name)
+            user.channel_url = str(c.author.channelUrl)
+            user.image_url = str(c.author.imageUrl)
             user.is_mod = c.author.isChatModerator
+            print(f"Saving user: id={user.user_id}, username={repr(user.username)}")
             user.save()
         else:
-            pass
-            # download_user_image(c.author.channelId, c.author.imageUrl)
+            print(f"Created user: id={user.user_id}, username={repr(user.username)}")
 
         vote = Vote.create(
             user=user,
@@ -98,14 +92,26 @@ class WebsocketClient:
         except asyncio.TimeoutError:
             print(f"ERROR: Processing message '{c.message}' by {c.author.name} timed out after {timeout} seconds.")
             return
+        except Exception as e:
+            print(f"Exception while processing message '{c.message}': {e}")
+            return
         print(f'Successfully evaluated {c.message} by {c.author.name}')
 
     async def chat_watcher(self, video_id):
-        chat = pytchat.create(video_id=video_id)
-        while chat.is_alive():
-            for c in chat.get().sync_items():
-                asyncio.create_task(self.process_message(c, timeout=5))
-            await asyncio.sleep(0.3)
+        """Robustly watches chat, restarts pytchat session if it dies, with logging and auto-retry."""
+        while True:
+            try:
+                print("Creating new pytchat session...")
+                chat = pytchat.create(video_id=video_id)
+                while chat.is_alive():
+                    for c in chat.get().sync_items():
+                        asyncio.create_task(self.process_message(c, timeout=5))
+                    await asyncio.sleep(0.3)
+                print("Chat session is no longer alive, restarting in 2 seconds...")
+                await asyncio.sleep(2)
+            except Exception as e:
+                print(f"Exception in chat_watcher: {e}. Restarting in 10 seconds...")
+                await asyncio.sleep(10)
 
     async def periodic_status_report(self):
         while True:

@@ -18,7 +18,7 @@ class Game:
         self.db_name = db_name
 
     def __enter__(self):
-        db.init(self.db_name)
+        # db.init(self.db_name)
         db.connect(reuse_if_open=True)
 
         # Setup environment
