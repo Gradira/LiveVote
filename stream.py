@@ -5,6 +5,7 @@ from time import sleep
 
 from pyvirtualdisplay import Display
 from selenium import webdriver
+from selenium.common import WebDriverException
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.service import Service
@@ -31,7 +32,10 @@ def run_selenium_on_xvfb():
     options.add_argument("--width=1920")
     options.add_argument("--height=1080")
 
-    driver = webdriver.Firefox(service=Service("geckodriver"), options=options)
+    try:
+        driver = webdriver.Firefox(service=Service("./geckodriver"), options=options)
+    except WebDriverException:  # weird path issue, depends on the system
+        driver = webdriver.Firefox(service=Service("geckodriver"), options=options)
     driver.minimize_window()
     try:
         run(driver)
